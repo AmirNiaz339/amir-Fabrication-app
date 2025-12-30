@@ -1,0 +1,7 @@
+{
+  "name": "Visual Archive Pro",
+  "description": "A robust system for capturing, uploading, and archiving images with custom codes, featuring AI-powered analysis and secure admin-only deletion.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
