@@ -29,7 +29,6 @@ export interface ArchiveEntry {
   images: ArchiveImage[];
   timestamp: number;
   lookupData?: ExcelRow;
-  description?: string;
 }
 
 export interface PendingEntry {
@@ -37,7 +36,15 @@ export interface PendingEntry {
   url: string;
 }
 
-export type ThemeType = 'indigo' | 'dark' | 'emerald' | 'cyber';
+export type SortOption = 'newest' | 'oldest' | 'barcode-asc' | 'barcode-desc' | 'vendor-asc' | 'product-asc';
+
+export type ThemeType = 
+  | 'indigo-light' | 'indigo-dark' | 'emerald-light' | 'emerald-dark' 
+  | 'rose-light' | 'rose-dark' | 'amber-light' | 'amber-dark' 
+  | 'violet-light' | 'violet-dark' | 'cyan-light' | 'cyan-dark'
+  | 'orange-light' | 'orange-dark' | 'lime-light' | 'lime-dark'
+  | 'fuchsia-light' | 'fuchsia-dark' | 'sky-light' | 'sky-dark'
+  | 'zinc-light' | 'zinc-dark' | 'slate-light' | 'slate-dark';
 
 export interface UserAccount {
   id: string;
@@ -49,9 +56,4 @@ export interface UserAccount {
 export interface UserSession {
   name: string;
   role: 'admin' | 'user';
-}
-
-export enum ViewMode {
-  GRID = 'GRID',
-  LIST = 'LIST'
 }

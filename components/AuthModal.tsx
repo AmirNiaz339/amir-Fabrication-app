@@ -24,22 +24,26 @@ const AuthModal: React.FC<AuthModalProps> = ({ theme, accounts, onLogin }) => {
     onLogin({ name: target.name, role: target.role });
   };
 
-  const themeClasses = {
-    indigo: 'bg-slate-50 text-slate-900',
-    dark: 'bg-slate-950 text-slate-100',
-    emerald: 'bg-emerald-50 text-emerald-950',
-    cyber: 'bg-black text-amber-400'
-  }[theme];
+  // Fix: ThemeType is 'color-mode' (e.g. 'indigo-dark'). Using string checks to derive styles.
+  const isDark = theme.endsWith('-dark');
+  const isEmerald = theme.startsWith('emerald');
+  const isAmber = theme.startsWith('amber');
 
-  const cardBg = theme === 'dark' || theme === 'cyber' ? 'bg-slate-900' : 'bg-white';
-  const brandText = theme === 'cyber' ? 'text-amber-500' : 'text-blue-600';
+  const themeClasses = isDark 
+    ? 'bg-slate-950 text-slate-100' 
+    : isEmerald 
+      ? 'bg-emerald-50 text-emerald-950'
+      : 'bg-slate-50 text-slate-900';
+
+  const cardBg = isDark ? 'bg-slate-900' : 'bg-white';
+  const brandText = isAmber ? 'text-amber-500' : 'text-blue-600';
 
   return (
     <div className={`min-h-screen flex items-center justify-center p-6 ${themeClasses}`}>
       <div className={`w-full max-w-lg rounded-[3rem] overflow-hidden shadow-2xl transition-all border border-current/5 ${cardBg}`}>
         <div className="p-12">
           <div className="flex flex-col items-center text-center mb-10">
-            <div className={`p-5 rounded-2xl mb-6 ${theme === 'cyber' ? 'bg-amber-500 text-black' : 'bg-blue-600 text-white'}`}>
+            <div className={`p-5 rounded-2xl mb-6 ${isAmber ? 'bg-amber-500 text-black' : 'bg-blue-600 text-white'}`}>
               <Layers className="w-10 h-10" />
             </div>
             <h1 className="text-3xl font-black tracking-tighter mb-2">AMIR NIAZ <span className={brandText}>FABRICATION</span></h1>
@@ -50,7 +54,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ theme, accounts, onLogin }) => {
             <input 
               type="text" 
               placeholder="Operator ID"
-              className={`w-full px-6 py-5 rounded-2xl text-lg font-black outline-none border transition-all ${theme === 'cyber' ? 'bg-black border-amber-900' : 'bg-slate-50 border-slate-200'}`}
+              className={`w-full px-6 py-5 rounded-2xl text-lg font-black outline-none border transition-all ${isAmber ? 'bg-black border-amber-900' : 'bg-slate-50 border-slate-200'}`}
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -58,14 +62,14 @@ const AuthModal: React.FC<AuthModalProps> = ({ theme, accounts, onLogin }) => {
             <input 
               type="password" 
               placeholder="Access Key"
-              className={`w-full px-6 py-5 rounded-2xl text-lg font-black outline-none border transition-all ${theme === 'cyber' ? 'bg-black border-amber-900' : 'bg-slate-50 border-slate-200'}`}
+              className={`w-full px-6 py-5 rounded-2xl text-lg font-black outline-none border transition-all ${isAmber ? 'bg-black border-amber-900' : 'bg-slate-50 border-slate-200'}`}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
             <button 
               type="submit"
-              className={`w-full py-6 rounded-2xl font-black uppercase tracking-[0.2em] shadow-xl flex items-center justify-center gap-3 mt-4 text-xs ${theme === 'cyber' ? 'bg-amber-500 text-black' : 'bg-blue-600 text-white'}`}
+              className={`w-full py-6 rounded-2xl font-black uppercase tracking-[0.2em] shadow-xl flex items-center justify-center gap-3 mt-4 text-xs ${isAmber ? 'bg-amber-500 text-black' : 'bg-blue-600 text-white'}`}
             >
               Initialize App <ArrowRight className="w-5 h-5" />
             </button>
