@@ -10,9 +10,13 @@ import {
   User as UserIcon,
   LogOut,
   BarChart3,
-  Palette
+  Palette,
+  Users,
+  X,
+  UserPlus,
+  Trash2
 } from 'lucide-react';
-import { ArchiveEntry, ArchiveImage, PendingEntry, ThemeType, UserSession } from './types';
+import { ArchiveEntry, ArchiveImage, PendingEntry, ThemeType, UserSession, UserAccount } from './types';
 import EntryCard from './components/EntryCard';
 import CreatorCard from './components/CreatorCard';
 import PendingCard from './components/PendingCard';
@@ -22,16 +26,27 @@ import AuthModal from './components/AuthModal';
 const App: React.FC = () => {
   const [entries, setEntries] = useState<ArchiveEntry[]>([]);
   const [pendingEntries, setPendingEntries] = useState<PendingEntry[]>([]);
+  const [accounts, setAccounts] = useState<UserAccount[]>(() => {
+    const saved = localStorage.getItem('archive_accounts');
+    if (saved) return JSON.parse(saved);
+    return [{ id: '1', name: 'admin', password: 'admin', role: 'admin' }];
+  });
+  
   const [session, setSession] = useState<UserSession | null>(() => {
     const saved = localStorage.getItem('archive_session');
     return saved ? JSON.parse(saved) : null;
   });
-  const [theme, setTheme] = useState<ThemeType>(() => (localStorage.getItem('archive_theme') as ThemeType) || 'indigo');
   
+  const [theme, setTheme] = useState<ThemeType>(() => (localStorage.getItem('archive_theme') as ThemeType) || 'indigo');
+  const [showUserMgmt, setShowUserMgmt] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // User Mgmt State
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserPass, setNewUserPass] = useState('');
 
   // Persistence
   useEffect(() => {
@@ -48,11 +63,14 @@ const App: React.FC = () => {
   }, [theme]);
 
   useEffect(() => {
+    localStorage.setItem('archive_accounts', JSON.stringify(accounts));
+  }, [accounts]);
+
+  useEffect(() => {
     if (session) localStorage.setItem('archive_session', JSON.stringify(session));
     else localStorage.removeItem('archive_session');
   }, [session]);
 
-  // Logic
   const handleAddEntry = (code: string, userName: string, imageUrl: string) => {
     const newEntry: ArchiveEntry = {
       id: crypto.randomUUID(),
@@ -95,7 +113,28 @@ const App: React.FC = () => {
     }
   };
 
-  // Stats
+  const handleCreateAccount = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUserName || !newUserPass) return;
+    const exists = accounts.find(a => a.name.toLowerCase() === newUserName.toLowerCase());
+    if (exists) return alert("User already exists");
+
+    const newAcc: UserAccount = {
+      id: crypto.randomUUID(),
+      name: newUserName,
+      password: newUserPass,
+      role: 'user'
+    };
+    setAccounts(prev => [...prev, newAcc]);
+    setNewUserName('');
+    setNewUserPass('');
+  };
+
+  const handleDeleteAccount = (id: string) => {
+    if (accounts.find(a => a.id === id)?.name === 'admin') return alert("Cannot delete master admin");
+    setAccounts(prev => prev.filter(a => a.id !== id));
+  };
+
   const stats = useMemo(() => {
     return {
       total: entries.length,
@@ -124,12 +163,11 @@ const App: React.FC = () => {
   }[theme];
 
   if (!session) {
-    return <AuthModal theme={theme} onLogin={setSession} />;
+    return <AuthModal theme={theme} accounts={accounts} onLogin={setSession} />;
   }
 
   return (
     <div className={`min-h-screen flex flex-col transition-colors duration-500 ${themeClasses}`}>
-      {/* Smart Header */}
       <header className={`${theme === 'dark' || theme === 'cyber' ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'} border-b sticky top-0 z-40 px-6 py-4 shadow-xl`}>
         <div className="max-w-[1800px] mx-auto flex flex-col xl:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-6">
@@ -154,13 +192,22 @@ const App: React.FC = () => {
                </select>
             </div>
 
+            {session.role === 'admin' && (
+              <button 
+                onClick={() => setShowUserMgmt(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-200 transition-all"
+              >
+                <Users className="w-4 h-4" /> Manage Users
+              </button>
+            )}
+
             <button 
               onClick={() => fileInputRef.current?.click()}
               disabled={isBulkProcessing}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 ${theme === 'cyber' ? 'bg-amber-500 text-black' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'}`}
             >
               {isBulkProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-              Bulk Folder
+              Bulk Upload
             </button>
             <input type="file" ref={fileInputRef} multiple className="hidden" accept="image/*" onChange={handleBulkUpload} />
           </div>
@@ -179,8 +226,8 @@ const App: React.FC = () => {
             
             <div className={`flex items-center gap-3 pl-4 border-l border-current/10`}>
               <div className="text-right hidden sm:block">
-                <p className="text-[10px] font-black uppercase tracking-widest opacity-40">Active Session</p>
-                <p className="text-sm font-bold">{session.name} ({session.role})</p>
+                <p className="text-[10px] font-black uppercase tracking-widest opacity-40">User Logged</p>
+                <p className="text-sm font-bold">{session.name} <span className="text-[10px] opacity-50">({session.role})</span></p>
               </div>
               <button 
                 onClick={() => setSession(null)}
@@ -194,27 +241,27 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      {/* Intelligence Dashboard */}
+      {/* Stats Dashboard */}
       <div className={`${theme === 'dark' || theme === 'cyber' ? 'bg-slate-800' : 'bg-white'} border-b border-current/5 py-3 px-6 shadow-sm overflow-x-auto`}>
         <div className="max-w-[1800px] mx-auto flex items-center justify-center gap-12 whitespace-nowrap">
           <div className="flex items-center gap-3">
              <BarChart3 className={`w-5 h-5 ${brandColors.split(' ')[0]}`} />
-             <span className="text-xs font-black uppercase tracking-[0.2em] opacity-50">Global Stats</span>
+             <span className="text-xs font-black uppercase tracking-[0.2em] opacity-50">Analytics</span>
           </div>
           <div className="flex items-center gap-6">
             <div className="flex flex-col items-center">
               <span className="text-lg font-black">{stats.total}</span>
-              <span className="text-[9px] font-bold uppercase opacity-40">Total Records</span>
+              <span className="text-[9px] font-bold uppercase opacity-40">Total</span>
             </div>
             <div className="w-px h-6 bg-current/10"></div>
             <div className="flex flex-col items-center">
               <span className={`text-lg font-black ${brandColors.split(' ')[0]}`}>{stats.subtotal}</span>
-              <span className="text-[9px] font-bold uppercase opacity-40">Your Entries</span>
+              <span className="text-[9px] font-bold uppercase opacity-40">Personal</span>
             </div>
             <div className="w-px h-6 bg-current/10"></div>
             <div className="flex flex-col items-center">
               <span className={`text-lg font-black ${stats.pending > 0 ? 'text-orange-500' : ''}`}>{stats.pending}</span>
-              <span className="text-[9px] font-bold uppercase opacity-40">Pending Queue</span>
+              <span className="text-[9px] font-bold uppercase opacity-40">Queue</span>
             </div>
           </div>
         </div>
@@ -225,12 +272,12 @@ const App: React.FC = () => {
           {pendingEntries.length > 0 && (
             <section className="mb-16">
               <div className="flex items-center gap-4 mb-8">
-                <div className="bg-orange-500 p-2 rounded-xl text-white shadow-lg shadow-orange-200">
+                <div className="bg-orange-500 p-2 rounded-xl text-white shadow-lg">
                   <Loader2 className="w-5 h-5 animate-spin" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-black uppercase tracking-tighter">Barcode Sorting Zone</h2>
-                  <p className="text-xs opacity-50 font-bold uppercase tracking-widest">Awaiting Identity Verification</p>
+                  <h2 className="text-lg font-black uppercase tracking-tighter">Queue Processing</h2>
+                  <p className="text-xs opacity-50 font-bold uppercase tracking-widest">Assigning Barcodes</p>
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-8">
@@ -255,8 +302,8 @@ const App: React.FC = () => {
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-lg font-black uppercase tracking-tighter">Verified Permanent Archive</h2>
-                <p className="text-xs opacity-50 font-bold uppercase tracking-widest">Immutable Record Storage</p>
+                <h2 className="text-lg font-black uppercase tracking-tighter">Secured Archive</h2>
+                <p className="text-xs opacity-50 font-bold uppercase tracking-widest">Permanent Registry</p>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-8">
@@ -273,15 +320,71 @@ const App: React.FC = () => {
               ))}
             </div>
           </section>
-
-          {filteredEntries.length === 0 && searchQuery && (
-            <div className="flex flex-col items-center justify-center py-40 opacity-20">
-              <Search className="w-20 h-20 mb-6" />
-              <p className="text-2xl font-black uppercase tracking-widest">Zero Results Found</p>
-            </div>
-          )}
         </div>
       </main>
+
+      {/* User Management Modal */}
+      {showUserMgmt && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-md">
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl border border-white/10">
+            <div className="p-8 border-b border-current/5 flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-black uppercase tracking-tight">System User Rights</h3>
+                <p className="text-xs opacity-50 font-bold uppercase tracking-widest">Assign Operator Privileges</p>
+              </div>
+              <button onClick={() => setShowUserMgmt(false)} className="p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-all">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="p-8">
+              <form onSubmit={handleCreateAccount} className="flex gap-3 mb-8">
+                <input 
+                  type="text" 
+                  placeholder="Username" 
+                  className="flex-1 px-5 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 outline-none border border-transparent focus:border-indigo-500 font-bold"
+                  value={newUserName}
+                  onChange={(e) => setNewUserName(e.target.value)}
+                />
+                <input 
+                  type="password" 
+                  placeholder="Password" 
+                  className="flex-1 px-5 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 outline-none border border-transparent focus:border-indigo-500 font-bold"
+                  value={newUserPass}
+                  onChange={(e) => setNewUserPass(e.target.value)}
+                />
+                <button type="submit" className="bg-indigo-600 text-white px-6 rounded-xl font-black uppercase tracking-widest flex items-center gap-2 hover:bg-indigo-700 transition-all">
+                  <UserPlus className="w-5 h-5" /> Add
+                </button>
+              </form>
+
+              <div className="max-h-[300px] overflow-y-auto space-y-2">
+                {accounts.map(acc => (
+                  <div key={acc.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-current/5">
+                    <div className="flex items-center gap-4">
+                      <div className={`p-2 rounded-lg ${acc.role === 'admin' ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-200 text-slate-600'}`}>
+                        <UserIcon className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-sm">{acc.name}</p>
+                        <p className="text-[10px] font-black uppercase opacity-40 tracking-widest">{acc.role}</p>
+                      </div>
+                    </div>
+                    {acc.name !== 'admin' && (
+                      <button 
+                        onClick={() => handleDeleteAccount(acc.id)}
+                        className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {previewImageUrl && (
         <ImagePreviewModal 

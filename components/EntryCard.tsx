@@ -32,7 +32,7 @@ const EntryCard: React.FC<EntryCardProps> = ({ entry, isAdmin, theme, onDelete, 
             className="flex-1 py-4 bg-white text-slate-900 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all flex flex-col items-center gap-2"
           >
             <Maximize2 className="w-6 h-6" />
-            Inspect HD
+            Open Viewer
           </button>
           {isAdmin && (
             <button 
@@ -70,7 +70,7 @@ const EntryCard: React.FC<EntryCardProps> = ({ entry, isAdmin, theme, onDelete, 
               <User className="w-5 h-5" />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-[9px] font-black uppercase tracking-widest opacity-40">Captured By</span>
+              <span className="text-[9px] font-black uppercase tracking-widest opacity-40">Entry Operator</span>
               <span className="text-base font-bold truncate">{entry.userName}</span>
             </div>
           </div>
@@ -87,7 +87,7 @@ const EntryCard: React.FC<EntryCardProps> = ({ entry, isAdmin, theme, onDelete, 
                 <span className="text-[10px] font-black opacity-50 uppercase tracking-widest">Permanent Storage</span>
              </div>
              <button onClick={() => onPreview(entry.images[0].url)} className={`text-[10px] font-black uppercase tracking-widest underline decoration-2 underline-offset-4 ${brandText}`}>
-               Open Viewer
+               Open HD View
              </button>
           </div>
         </div>

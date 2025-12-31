@@ -21,6 +21,13 @@ export interface PendingEntry {
 
 export type ThemeType = 'indigo' | 'dark' | 'emerald' | 'cyber';
 
+export interface UserAccount {
+  id: string;
+  name: string;
+  password: string;
+  role: 'admin' | 'user';
+}
+
 export interface UserSession {
   name: string;
   role: 'admin' | 'user';

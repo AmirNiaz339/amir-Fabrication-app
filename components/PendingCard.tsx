@@ -29,7 +29,7 @@ const PendingCard: React.FC<PendingCardProps> = ({ pending, currentUser, theme, 
         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 backdrop-blur-sm">
            <button onClick={() => onPreview(pending.url)} className="p-4 bg-white/20 backdrop-blur-md text-white rounded-2xl hover:bg-white/40 transition-all border border-white/20 flex items-center gap-2">
             <Maximize2 className="w-6 h-6" />
-            <span className="text-[10px] font-black uppercase tracking-widest">Preview</span>
+            Open Viewer
           </button>
         </div>
         <button 
@@ -67,7 +67,7 @@ const PendingCard: React.FC<PendingCardProps> = ({ pending, currentUser, theme, 
               <User className="w-5 h-5" />
             </div>
             <div className="flex flex-col">
-              <span className="text-[9px] font-black text-orange-500/60 uppercase tracking-widest">Operator Session</span>
+              <span className="text-[9px] font-black text-orange-500/60 uppercase tracking-widest">Active Session</span>
               <p className="text-sm font-bold truncate max-w-[140px]">{currentUser}</p>
             </div>
           </div>

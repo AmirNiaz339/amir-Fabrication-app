@@ -1,27 +1,27 @@
 
 import React, { useState } from 'react';
 import { Layers, ShieldCheck, User as UserIcon, Lock, ArrowRight } from 'lucide-react';
-import { ThemeType, UserSession } from '../types';
+import { ThemeType, UserSession, UserAccount } from '../types';
 
 interface AuthModalProps {
   theme: ThemeType;
+  accounts: UserAccount[];
   onLogin: (session: UserSession) => void;
 }
 
-const AuthModal: React.FC<AuthModalProps> = ({ theme, onLogin }) => {
-  const [role, setRole] = useState<'admin' | 'user'>('user');
+const AuthModal: React.FC<AuthModalProps> = ({ theme, accounts, onLogin }) => {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return alert("Enter your name");
+    const target = accounts.find(a => a.name.toLowerCase() === name.toLowerCase());
     
-    if (role === 'admin') {
-      if (password !== 'admin') return alert("Incorrect admin password");
+    if (!target || target.password !== password) {
+      return alert("Invalid Credentials. Please contact Admin.");
     }
 
-    onLogin({ name, role });
+    onLogin({ name: target.name, role: target.role });
   };
 
   const themeClasses = {
@@ -40,22 +40,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ theme, onLogin }) => {
               <Layers className="w-10 h-10" />
             </div>
             <h1 className="text-4xl font-black tracking-tighter mb-2">ARCHIVE<span className={theme === 'cyber' ? 'text-amber-500' : 'text-indigo-600'}>MAX</span></h1>
-            <p className="text-sm font-bold opacity-40 uppercase tracking-[0.2em]">Asset Intelligence & Verification</p>
-          </div>
-
-          <div className="flex p-1.5 bg-current/5 rounded-2xl mb-8">
-            <button 
-              onClick={() => setRole('user')}
-              className={`flex-1 py-3 px-4 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${role === 'user' ? (theme === 'cyber' ? 'bg-amber-500 text-black shadow-lg' : 'bg-indigo-600 text-white shadow-lg') : 'opacity-40 hover:opacity-60'}`}
-            >
-              Operator
-            </button>
-            <button 
-              onClick={() => setRole('admin')}
-              className={`flex-1 py-3 px-4 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${role === 'admin' ? (theme === 'cyber' ? 'bg-amber-500 text-black shadow-lg' : 'bg-indigo-600 text-white shadow-lg') : 'opacity-40 hover:opacity-60'}`}
-            >
-              Administrator
-            </button>
+            <p className="text-sm font-bold opacity-40 uppercase tracking-[0.2em]">Authorized Access Control</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5">
@@ -63,7 +48,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ theme, onLogin }) => {
               <UserIcon className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 opacity-30" />
               <input 
                 type="text" 
-                placeholder="Full Name"
+                placeholder="Authorized Username"
                 className={`w-full pl-14 pr-6 py-5 rounded-2xl text-lg font-bold outline-none border transition-all ${theme === 'dark' || theme === 'cyber' ? 'bg-slate-800 border-slate-700 focus:border-amber-500' : 'bg-slate-50 border-slate-200 focus:border-indigo-600'}`}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -71,34 +56,28 @@ const AuthModal: React.FC<AuthModalProps> = ({ theme, onLogin }) => {
               />
             </div>
 
-            {role === 'admin' && (
-              <div className="relative animate-in slide-in-from-top-4">
-                <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 opacity-30" />
-                <input 
-                  type="password" 
-                  placeholder="Admin Access Key"
-                  className={`w-full pl-14 pr-6 py-5 rounded-2xl text-lg font-bold outline-none border transition-all ${theme === 'dark' || theme === 'cyber' ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-            )}
+            <div className="relative">
+              <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 opacity-30" />
+              <input 
+                type="password" 
+                placeholder="Access Key"
+                className={`w-full pl-14 pr-6 py-5 rounded-2xl text-lg font-bold outline-none border transition-all ${theme === 'dark' || theme === 'cyber' ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
 
             <button 
               type="submit"
               className={`w-full py-6 rounded-2xl font-black uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-[0.98] flex items-center justify-center gap-3 mt-4 ${theme === 'cyber' ? 'bg-amber-500 text-black hover:bg-amber-400' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}
             >
-              Initialize Access <ArrowRight className="w-5 h-5" />
+              Authenticate <ArrowRight className="w-5 h-5" />
             </button>
           </form>
 
-          <div className="mt-10 pt-10 border-t border-current/5 flex items-center justify-between opacity-30">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-widest">TLS 1.3 Encryption</span>
-            </div>
-            <span className="text-[10px] font-black uppercase tracking-widest">v2.5.0 STABLE</span>
+          <div className="mt-10 pt-10 border-t border-current/5 flex items-center justify-center opacity-30">
+            <span className="text-[10px] font-black uppercase tracking-widest text-center">Unauthorized attempts are logged for security</span>
           </div>
         </div>
       </div>
