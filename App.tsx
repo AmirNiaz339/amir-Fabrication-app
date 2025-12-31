@@ -3,7 +3,6 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   ShieldCheck, 
   Search,
-  Plus,
   Layers,
   Upload,
   Loader2,
@@ -16,7 +15,7 @@ import {
   UserPlus,
   Trash2
 } from 'lucide-react';
-import { ArchiveEntry, ArchiveImage, PendingEntry, ThemeType, UserSession, UserAccount } from './types';
+import { ArchiveEntry, PendingEntry, ThemeType, UserSession, UserAccount } from './types';
 import EntryCard from './components/EntryCard';
 import CreatorCard from './components/CreatorCard';
 import PendingCard from './components/PendingCard';
@@ -44,11 +43,9 @@ const App: React.FC = () => {
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // User Mgmt State
   const [newUserName, setNewUserName] = useState('');
   const [newUserPass, setNewUserPass] = useState('');
 
-  // Persistence
   useEffect(() => {
     const saved = localStorage.getItem('visual_archive_entries');
     if (saved) setEntries(JSON.parse(saved));
@@ -115,14 +112,14 @@ const App: React.FC = () => {
 
   const handleCreateAccount = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newUserName || !newUserPass) return;
+    if (!newUserName.trim() || !newUserPass.trim()) return;
     const exists = accounts.find(a => a.name.toLowerCase() === newUserName.toLowerCase());
     if (exists) return alert("User already exists");
 
     const newAcc: UserAccount = {
       id: crypto.randomUUID(),
-      name: newUserName,
-      password: newUserPass,
+      name: newUserName.trim(),
+      password: newUserPass.trim(),
       role: 'user'
     };
     setAccounts(prev => [...prev, newAcc]);
@@ -131,8 +128,11 @@ const App: React.FC = () => {
   };
 
   const handleDeleteAccount = (id: string) => {
-    if (accounts.find(a => a.id === id)?.name === 'admin') return alert("Cannot delete master admin");
-    setAccounts(prev => prev.filter(a => a.id !== id));
+    const acc = accounts.find(a => a.id === id);
+    if (acc?.name === 'admin') return alert("Cannot delete master admin");
+    if (window.confirm(`Remove access for ${acc?.name}?`)) {
+      setAccounts(prev => prev.filter(a => a.id !== id));
+    }
   };
 
   const stats = useMemo(() => {
@@ -150,16 +150,37 @@ const App: React.FC = () => {
 
   const themeClasses = {
     indigo: 'bg-slate-50 text-slate-900',
-    dark: 'bg-slate-950 text-slate-100',
-    emerald: 'bg-emerald-50 text-slate-900',
+    dark: 'bg-slate-950 text-slate-50',
+    emerald: 'bg-emerald-50 text-emerald-950',
     cyber: 'bg-black text-amber-400'
   }[theme];
 
   const brandColors = {
-    indigo: 'text-indigo-600 bg-indigo-600',
-    dark: 'text-blue-400 bg-blue-500',
-    emerald: 'text-emerald-600 bg-emerald-600',
-    cyber: 'text-amber-500 bg-amber-500'
+    indigo: 'text-indigo-600 bg-indigo-600 border-indigo-200',
+    dark: 'text-blue-400 bg-blue-500 border-blue-900',
+    emerald: 'text-emerald-700 bg-emerald-600 border-emerald-200',
+    cyber: 'text-amber-500 bg-amber-500 border-amber-900'
+  }[theme];
+
+  const headerBg = {
+    indigo: 'bg-white border-slate-200',
+    dark: 'bg-slate-900 border-slate-800',
+    emerald: 'bg-white border-emerald-100',
+    cyber: 'bg-black border-amber-900'
+  }[theme];
+
+  const modalInnerBg = {
+    indigo: 'bg-white text-slate-900',
+    dark: 'bg-slate-900 text-slate-50',
+    emerald: 'bg-white text-emerald-950',
+    cyber: 'bg-zinc-950 text-amber-400'
+  }[theme];
+
+  const inputStyle = {
+    indigo: 'bg-slate-50 border-slate-200 text-slate-900',
+    dark: 'bg-slate-800 border-slate-700 text-white',
+    emerald: 'bg-emerald-50/50 border-emerald-100 text-emerald-900',
+    cyber: 'bg-black border-amber-900 text-amber-400'
   }[theme];
 
   if (!session) {
@@ -168,43 +189,43 @@ const App: React.FC = () => {
 
   return (
     <div className={`min-h-screen flex flex-col transition-colors duration-500 ${themeClasses}`}>
-      <header className={`${theme === 'dark' || theme === 'cyber' ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'} border-b sticky top-0 z-40 px-6 py-4 shadow-xl`}>
+      <header className={`${headerBg} border-b sticky top-0 z-40 px-6 py-4 shadow-xl`}>
         <div className="max-w-[1800px] mx-auto flex flex-col xl:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-3">
-              <div className={`${brandColors.split(' ')[1]} p-2.5 rounded-2xl shadow-lg ring-4 ring-current/10`}>
+              <div className={`${brandColors.split(' ')[1]} p-2.5 rounded-2xl shadow-lg ring-4 ring-current/20`}>
                 <Layers className="text-white w-6 h-6" />
               </div>
               <h1 className="text-2xl font-black tracking-tighter">ARCHIVE<span className={brandColors.split(' ')[0]}>MAX</span></h1>
             </div>
 
-            <div className="flex items-center gap-2 bg-slate-500/10 px-4 py-2 rounded-2xl border border-current/5">
-               <Palette className="w-4 h-4 opacity-50" />
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-2xl border ${theme === 'cyber' ? 'bg-amber-500/10 border-amber-500/40' : 'bg-slate-500/10 border-current/10'}`}>
+               <Palette className="w-4 h-4 opacity-70" />
                <select 
                 value={theme} 
                 onChange={(e) => setTheme(e.target.value as ThemeType)}
-                className="bg-transparent text-xs font-black uppercase tracking-widest outline-none border-none cursor-pointer"
+                className="bg-transparent text-xs font-black uppercase tracking-widest outline-none border-none cursor-pointer focus:ring-0"
                >
-                 <option value="indigo">Classic Indigo</option>
-                 <option value="dark">Midnight Dark</option>
-                 <option value="emerald">Emerald Forest</option>
-                 <option value="cyber">Cyber Amber</option>
+                 <option value="indigo" className="text-slate-900">Classic Indigo</option>
+                 <option value="dark" className="text-slate-900">Midnight Dark</option>
+                 <option value="emerald" className="text-slate-900">Emerald Forest</option>
+                 <option value="cyber" className="text-slate-900">Cyber Amber</option>
                </select>
             </div>
 
             {session.role === 'admin' && (
               <button 
                 onClick={() => setShowUserMgmt(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-200 transition-all"
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${theme === 'cyber' ? 'bg-amber-500/20 hover:bg-amber-500/40 text-amber-400 border border-amber-500/30' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 border border-current/20'}`}
               >
-                <Users className="w-4 h-4" /> Manage Users
+                <Users className="w-4 h-4" /> Users
               </button>
             )}
 
             <button 
               onClick={() => fileInputRef.current?.click()}
               disabled={isBulkProcessing}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 ${theme === 'cyber' ? 'bg-amber-500 text-black' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'}`}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 ${theme === 'cyber' ? 'bg-amber-500 text-black shadow-[0_0_15px_rgba(245,158,11,0.4)]' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'}`}
             >
               {isBulkProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
               Bulk Upload
@@ -214,24 +235,24 @@ const App: React.FC = () => {
 
           <div className="flex items-center gap-4 w-full xl:w-auto">
             <div className="relative flex-1 xl:w-96">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 opacity-40 w-5 h-5" />
+              <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${theme === 'cyber' ? 'text-amber-500' : 'opacity-60'}`} />
               <input 
                 type="text" 
-                placeholder="Search archive..."
-                className={`w-full pl-12 pr-4 py-3 rounded-2xl text-sm outline-none transition-all ${theme === 'dark' || theme === 'cyber' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-200 focus:ring-4 focus:ring-indigo-100'}`}
+                placeholder="Search database..."
+                className={`w-full pl-12 pr-4 py-3 rounded-2xl text-sm font-bold outline-none border transition-all ${theme === 'dark' || theme === 'cyber' ? 'bg-slate-800 border-current/20 text-white placeholder:text-slate-500' : 'bg-slate-100 border-slate-200 focus:ring-4 focus:ring-indigo-100'}`}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
             
-            <div className={`flex items-center gap-3 pl-4 border-l border-current/10`}>
+            <div className={`flex items-center gap-3 pl-4 border-l ${theme === 'cyber' ? 'border-amber-900' : 'border-current/10'}`}>
               <div className="text-right hidden sm:block">
-                <p className="text-[10px] font-black uppercase tracking-widest opacity-40">User Logged</p>
-                <p className="text-sm font-bold">{session.name} <span className="text-[10px] opacity-50">({session.role})</span></p>
+                <p className={`text-[9px] font-black uppercase tracking-widest ${theme === 'cyber' ? 'text-amber-600' : 'opacity-60'}`}>Session</p>
+                <p className="text-sm font-black">{session.name}</p>
               </div>
               <button 
                 onClick={() => setSession(null)}
-                className="p-3 rounded-2xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                className={`p-3 rounded-2xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all border border-red-500/20 shadow-sm`}
                 title="Logout"
               >
                 <LogOut className="w-5 h-5" />
@@ -242,26 +263,26 @@ const App: React.FC = () => {
       </header>
 
       {/* Stats Dashboard */}
-      <div className={`${theme === 'dark' || theme === 'cyber' ? 'bg-slate-800' : 'bg-white'} border-b border-current/5 py-3 px-6 shadow-sm overflow-x-auto`}>
+      <div className={`${theme === 'dark' || theme === 'cyber' ? 'bg-slate-900/50' : 'bg-slate-100/50'} border-b border-current/10 py-4 px-6 shadow-inner overflow-x-auto`}>
         <div className="max-w-[1800px] mx-auto flex items-center justify-center gap-12 whitespace-nowrap">
           <div className="flex items-center gap-3">
              <BarChart3 className={`w-5 h-5 ${brandColors.split(' ')[0]}`} />
-             <span className="text-xs font-black uppercase tracking-[0.2em] opacity-50">Analytics</span>
+             <span className={`text-xs font-black uppercase tracking-[0.2em] ${theme === 'cyber' ? 'text-amber-600' : 'opacity-60'}`}>Data Summary</span>
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-8">
             <div className="flex flex-col items-center">
-              <span className="text-lg font-black">{stats.total}</span>
-              <span className="text-[9px] font-bold uppercase opacity-40">Total</span>
+              <span className="text-xl font-black">{stats.total}</span>
+              <span className={`text-[10px] font-black uppercase tracking-widest ${theme === 'cyber' ? 'text-amber-700' : 'opacity-60'}`}>Total</span>
             </div>
-            <div className="w-px h-6 bg-current/10"></div>
+            <div className="w-px h-8 bg-current/20"></div>
             <div className="flex flex-col items-center">
-              <span className={`text-lg font-black ${brandColors.split(' ')[0]}`}>{stats.subtotal}</span>
-              <span className="text-[9px] font-bold uppercase opacity-40">Personal</span>
+              <span className={`text-xl font-black ${brandColors.split(' ')[0]}`}>{stats.subtotal}</span>
+              <span className={`text-[10px] font-black uppercase tracking-widest ${theme === 'cyber' ? 'text-amber-700' : 'opacity-60'}`}>Personal</span>
             </div>
-            <div className="w-px h-6 bg-current/10"></div>
+            <div className="w-px h-8 bg-current/20"></div>
             <div className="flex flex-col items-center">
-              <span className={`text-lg font-black ${stats.pending > 0 ? 'text-orange-500' : ''}`}>{stats.pending}</span>
-              <span className="text-[9px] font-bold uppercase opacity-40">Queue</span>
+              <span className={`text-xl font-black ${stats.pending > 0 ? 'text-orange-500' : ''}`}>{stats.pending}</span>
+              <span className={`text-[10px] font-black uppercase tracking-widest ${theme === 'cyber' ? 'text-amber-700' : 'opacity-60'}`}>In Queue</span>
             </div>
           </div>
         </div>
@@ -270,14 +291,14 @@ const App: React.FC = () => {
       <main className="flex-1 p-6 lg:p-10">
         <div className="max-w-[1800px] mx-auto">
           {pendingEntries.length > 0 && (
-            <section className="mb-16">
+            <section className="mb-20">
               <div className="flex items-center gap-4 mb-8">
-                <div className="bg-orange-500 p-2 rounded-xl text-white shadow-lg">
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                <div className="bg-orange-500 p-2.5 rounded-2xl text-white shadow-xl shadow-orange-500/20">
+                  <Loader2 className="w-6 h-6 animate-spin" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-black uppercase tracking-tighter">Queue Processing</h2>
-                  <p className="text-xs opacity-50 font-bold uppercase tracking-widest">Assigning Barcodes</p>
+                  <h2 className="text-xl font-black uppercase tracking-tighter">Queue Sorting</h2>
+                  <p className={`text-xs font-black uppercase tracking-widest ${theme === 'cyber' ? 'text-amber-600' : 'opacity-70'}`}>Assign identities to bulk uploads</p>
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-8">
@@ -298,12 +319,12 @@ const App: React.FC = () => {
 
           <section>
             <div className="flex items-center gap-4 mb-8">
-              <div className={`${brandColors.split(' ')[1]} p-2 rounded-xl text-white shadow-lg`}>
-                <ShieldCheck className="w-5 h-5" />
+              <div className={`${brandColors.split(' ')[1]} p-2.5 rounded-2xl text-white shadow-xl shadow-current/20`}>
+                <ShieldCheck className="w-6 h-6" />
               </div>
               <div>
-                <h2 className="text-lg font-black uppercase tracking-tighter">Secured Archive</h2>
-                <p className="text-xs opacity-50 font-bold uppercase tracking-widest">Permanent Registry</p>
+                <h2 className="text-xl font-black uppercase tracking-tighter">Secured Archive</h2>
+                <p className={`text-xs font-black uppercase tracking-widest ${theme === 'cyber' ? 'text-amber-600' : 'opacity-70'}`}>Verified and logged records</p>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-8">
@@ -323,57 +344,60 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      {/* User Management Modal */}
+      {/* User Management Modal - Explicit Theme Handling */}
       {showUserMgmt && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-md">
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl border border-white/10">
-            <div className="p-8 border-b border-current/5 flex justify-between items-center">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl">
+          <div className={`${modalInnerBg} rounded-[3rem] w-full max-w-2xl overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.8)] border border-current/20`}>
+            <div className="p-10 border-b border-current/10 flex justify-between items-center">
               <div>
-                <h3 className="text-xl font-black uppercase tracking-tight">System User Rights</h3>
-                <p className="text-xs opacity-50 font-bold uppercase tracking-widest">Assign Operator Privileges</p>
+                <h3 className="text-2xl font-black uppercase tracking-tight">Access Control Panel</h3>
+                <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${theme === 'cyber' ? 'text-amber-600' : 'opacity-70'}`}>Register and authorize system operators</p>
               </div>
-              <button onClick={() => setShowUserMgmt(false)} className="p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-all">
-                <X className="w-6 h-6" />
+              <button onClick={() => setShowUserMgmt(false)} className={`p-3 rounded-full transition-all ${theme === 'cyber' ? 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/30' : 'bg-slate-100 hover:bg-slate-200 text-slate-900'}`}>
+                <X className="w-8 h-8" />
               </button>
             </div>
             
-            <div className="p-8">
-              <form onSubmit={handleCreateAccount} className="flex gap-3 mb-8">
+            <div className="p-10">
+              <form onSubmit={handleCreateAccount} className="flex flex-col md:flex-row gap-4 mb-10">
                 <input 
                   type="text" 
                   placeholder="Username" 
-                  className="flex-1 px-5 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 outline-none border border-transparent focus:border-indigo-500 font-bold"
+                  className={`flex-1 px-6 py-4 rounded-2xl outline-none border font-bold ${inputStyle}`}
                   value={newUserName}
                   onChange={(e) => setNewUserName(e.target.value)}
+                  required
                 />
                 <input 
                   type="password" 
-                  placeholder="Password" 
-                  className="flex-1 px-5 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 outline-none border border-transparent focus:border-indigo-500 font-bold"
+                  placeholder="Security Key" 
+                  className={`flex-1 px-6 py-4 rounded-2xl outline-none border font-bold ${inputStyle}`}
                   value={newUserPass}
                   onChange={(e) => setNewUserPass(e.target.value)}
+                  required
                 />
-                <button type="submit" className="bg-indigo-600 text-white px-6 rounded-xl font-black uppercase tracking-widest flex items-center gap-2 hover:bg-indigo-700 transition-all">
+                <button type="submit" className={`px-8 py-4 rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl transition-all active:scale-95 ${theme === 'cyber' ? 'bg-amber-500 text-black hover:bg-amber-400' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>
                   <UserPlus className="w-5 h-5" /> Add
                 </button>
               </form>
 
-              <div className="max-h-[300px] overflow-y-auto space-y-2">
+              <div className="max-h-[350px] overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+                {accounts.length === 0 && <p className="text-center py-10 opacity-50 font-bold uppercase tracking-widest">No operators registered</p>}
                 {accounts.map(acc => (
-                  <div key={acc.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-current/5">
-                    <div className="flex items-center gap-4">
-                      <div className={`p-2 rounded-lg ${acc.role === 'admin' ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-200 text-slate-600'}`}>
-                        <UserIcon className="w-4 h-4" />
+                  <div key={acc.id} className={`flex items-center justify-between p-5 rounded-3xl border ${theme === 'cyber' ? 'bg-amber-500/5 border-amber-900/50' : 'bg-current/5 border-current/10'}`}>
+                    <div className="flex items-center gap-5">
+                      <div className={`p-3 rounded-2xl shadow-sm ${acc.role === 'admin' ? (theme === 'cyber' ? 'bg-amber-500 text-black' : 'bg-indigo-600 text-white') : 'bg-current/10'}`}>
+                        <UserIcon className="w-6 h-6" />
                       </div>
                       <div>
-                        <p className="font-bold text-sm">{acc.name}</p>
-                        <p className="text-[10px] font-black uppercase opacity-40 tracking-widest">{acc.role}</p>
+                        <p className="font-black text-lg leading-none mb-1">{acc.name}</p>
+                        <p className={`text-[10px] font-black uppercase tracking-widest ${theme === 'cyber' ? 'text-amber-600' : 'opacity-70'}`}>Role: {acc.role}</p>
                       </div>
                     </div>
                     {acc.name !== 'admin' && (
                       <button 
                         onClick={() => handleDeleteAccount(acc.id)}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                        className={`p-3 text-red-500 hover:bg-red-500 hover:text-white rounded-2xl transition-all border border-red-500/20 active:scale-90`}
                       >
                         <Trash2 className="w-5 h-5" />
                       </button>
@@ -392,6 +416,20 @@ const App: React.FC = () => {
           onClose={() => setPreviewImageUrl(null)} 
         />
       )}
+
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(var(--current-color), 0.2);
+          border-radius: 10px;
+        }
+        ${theme === 'cyber' ? '.custom-scrollbar::-webkit-scrollbar-thumb { background: #f59e0b; }' : ''}
+      `}</style>
     </div>
   );
 };
