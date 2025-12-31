@@ -59,26 +59,22 @@ const App: React.FC = () => {
   const [newUserName, setNewUserName] = useState('');
   const [newUserPass, setNewUserPass] = useState('');
 
-  // Initial Load
   useEffect(() => {
     const saved = localStorage.getItem('visual_archive_entries');
     if (saved) setEntries(JSON.parse(saved));
   }, []);
 
-  // Save to LocalStorage
   useEffect(() => {
     localStorage.setItem('visual_archive_entries', JSON.stringify(entries));
     localStorage.setItem('archive_master_data', JSON.stringify(masterData));
   }, [entries, masterData]);
 
-  // Sync session and theme
   useEffect(() => {
     localStorage.setItem('archive_theme', theme);
     if (session) localStorage.setItem('archive_session', JSON.stringify(session));
     else localStorage.removeItem('archive_session');
   }, [theme, session]);
 
-  // IMPORTANT: Auto-Lookup logic when Excel data changes
   useEffect(() => {
     if (masterData.length > 0 && entries.length > 0) {
       setEntries(currentEntries => 
@@ -86,7 +82,6 @@ const App: React.FC = () => {
           const match = masterData.find(row => 
             row.barcode.toString().trim().toLowerCase() === entry.code.trim().toLowerCase()
           );
-          // Only update if lookup data is found or changed
           if (match && JSON.stringify(match) !== JSON.stringify(entry.lookupData)) {
             return { ...entry, lookupData: match };
           }
@@ -169,7 +164,7 @@ const App: React.FC = () => {
       })).filter(row => row.barcode !== '');
 
       setMasterData(newMasterData);
-      alert(`Success! Imported ${newMasterData.length} entries. Data lookup will auto-sync.`);
+      alert(`Success! Imported ${newMasterData.length} entries.`);
     };
     reader.readAsBinaryString(file);
     if (excelFileInputRef.current) excelFileInputRef.current.value = '';
@@ -183,27 +178,38 @@ const App: React.FC = () => {
     };
   }, [entries, pendingEntries, session]);
 
-  const filteredEntries = entries.filter(e => 
-    e.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    e.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    e.lookupData?.productName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredEntries = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    if (!q) return entries;
+    
+    return entries.filter(e => {
+      // Search in basic info
+      if (e.code.toLowerCase().includes(q)) return true;
+      if (e.userName.toLowerCase().includes(q)) return true;
+      
+      // Search in all lookup fields
+      if (e.lookupData) {
+        return Object.values(e.lookupData).some(val => 
+          val?.toString().toLowerCase().includes(q)
+        );
+      }
+      return false;
+    });
+  }, [entries, searchQuery]);
 
+  if (!session) return <AuthModal theme={theme} accounts={accounts} onLogin={setSession} />;
+
+  // Define themeClasses based on current theme to fix the 'Cannot find name' error
   const themeClasses = {
     indigo: 'bg-slate-50 text-slate-900',
-    dark: 'bg-slate-950 text-slate-50',
+    dark: 'bg-slate-950 text-slate-100',
     emerald: 'bg-emerald-50 text-emerald-950',
     cyber: 'bg-black text-amber-400'
   }[theme];
 
-  const headerBg = theme === 'cyber' ? 'bg-black border-amber-900' : 'bg-white border-slate-200';
-  const brandColors = theme === 'cyber' ? 'text-amber-500 bg-amber-500 border-amber-900' : 'text-blue-600 bg-blue-600 border-blue-200';
-
-  if (!session) return <AuthModal theme={theme} accounts={accounts} onLogin={setSession} />;
-
   return (
     <div className={`min-h-screen flex flex-col transition-colors duration-500 ${themeClasses}`}>
-      <header className={`${headerBg} border-b sticky top-0 z-40 px-6 py-4 shadow-xl`}>
+      <header className="bg-white border-b sticky top-0 z-40 px-6 py-4 shadow-xl">
         <div className="max-w-[1800px] mx-auto flex flex-col xl:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-3">
@@ -218,7 +224,7 @@ const App: React.FC = () => {
               className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-black uppercase tracking-widest bg-blue-600 text-white shadow-lg active:scale-95 transition-all"
             >
               <Plus className="w-5 h-5" />
-              Add New Record
+              Add Record
             </button>
 
             <button 
@@ -231,44 +237,44 @@ const App: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-4 w-full xl:w-auto">
-            <div className="relative flex-1 xl:w-96">
+            <div className="relative flex-1 xl:w-[500px]">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 opacity-40" />
               <input 
                 type="text" 
-                placeholder="Search database..."
-                className={`w-full pl-12 pr-4 py-3 rounded-2xl text-sm font-bold outline-none border transition-all ${theme === 'dark' || theme === 'cyber' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`}
+                placeholder="Search anything (Barcode, Product, Vendor, Price...)"
+                className="w-full pl-12 pr-4 py-3 rounded-2xl text-sm font-bold outline-none border border-slate-200 bg-slate-50 focus:border-blue-500 transition-all"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
             
-            <div className="flex items-center gap-3 pl-4 border-l border-current/10">
+            <div className="flex items-center gap-3 pl-4 border-l border-slate-100">
               {session.role === 'admin' && (
-                <button onClick={() => setShowAdminPanel(true)} className="p-3 rounded-2xl bg-current/5 hover:bg-current/10"><Database className="w-5 h-5" /></button>
+                <button onClick={() => setShowAdminPanel(true)} className="p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 transition-all"><Database className="w-5 h-5" /></button>
               )}
-              <button onClick={() => setSession(null)} className="p-3 rounded-2xl bg-red-500/10 text-red-500 border border-red-500/20"><LogOut className="w-5 h-5" /></button>
+              <button onClick={() => setSession(null)} className="p-3 rounded-2xl bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-all"><LogOut className="w-5 h-5" /></button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Status Bar - Data Summary */}
-      <div className={`${theme === 'dark' || theme === 'cyber' ? 'bg-slate-900' : 'bg-slate-100'} border-b border-current/5 py-3 px-6 overflow-x-auto`}>
+      {/* Status Bar */}
+      <div className="bg-slate-100 border-b border-slate-200 py-3 px-6 overflow-x-auto shadow-inner">
         <div className="max-w-[1800px] mx-auto flex items-center justify-center gap-10 whitespace-nowrap">
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-8">
             <div className="flex flex-col items-center">
               <span className="text-lg font-black">{stats.total}</span>
-              <span className="text-[9px] font-black uppercase opacity-60">Total Cards</span>
+              <span className="text-[9px] font-black uppercase opacity-60">Archived Cards</span>
             </div>
-            <div className="w-px h-6 bg-current/10"></div>
+            <div className="w-px h-6 bg-slate-300"></div>
             <div className="flex flex-col items-center">
               <span className="text-lg font-black text-blue-600">{masterData.length}</span>
-              <span className="text-[9px] font-black uppercase opacity-60">Excel Records</span>
+              <span className="text-[9px] font-black uppercase opacity-60">Database Records</span>
             </div>
-            <div className="w-px h-6 bg-current/10"></div>
+            <div className="w-px h-6 bg-slate-300"></div>
             <div className="flex flex-col items-center">
               <span className="text-lg font-black text-orange-500">{stats.pending}</span>
-              <span className="text-[9px] font-black uppercase opacity-60">In Queue</span>
+              <span className="text-[9px] font-black uppercase opacity-60">Upload Queue</span>
             </div>
           </div>
         </div>
@@ -276,24 +282,19 @@ const App: React.FC = () => {
 
       <main className="flex-1 p-6 lg:p-10">
         <div className="max-w-[1800px] mx-auto">
-          {pendingEntries.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-8 mb-20">
-              {pendingEntries.map(pending => (
-                <PendingCard 
-                  key={pending.id} 
-                  pending={pending} 
-                  currentUser={session.name}
-                  theme={theme}
-                  masterData={masterData}
-                  onSave={handleSavePending}
-                  onDiscard={(id) => setPendingEntries(prev => prev.filter(p => p.id !== id))}
-                  onPreview={setPreviewImageUrl}
-                />
-              ))}
-            </div>
-          )}
-
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-8">
+            {pendingEntries.map(pending => (
+              <PendingCard 
+                key={pending.id} 
+                pending={pending} 
+                currentUser={session.name}
+                theme={theme}
+                masterData={masterData}
+                onSave={handleSavePending}
+                onDiscard={(id) => setPendingEntries(prev => prev.filter(p => p.id !== id))}
+                onPreview={setPreviewImageUrl}
+              />
+            ))}
             {filteredEntries.map(entry => (
               <EntryCard 
                 key={entry.id} 
@@ -308,50 +309,50 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      {/* Admin Panel */}
+      {/* Admin Panel Modal */}
       {showAdminPanel && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
-          <div className={`${theme === 'dark' || theme === 'cyber' ? 'bg-slate-900' : 'bg-white'} rounded-[3rem] w-full max-w-4xl overflow-hidden shadow-2xl border border-current/10`}>
-            <div className="p-8 border-b border-current/10 flex justify-between items-center">
+          <div className="bg-white rounded-[3rem] w-full max-w-4xl overflow-hidden shadow-2xl border border-slate-200">
+            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50">
               <div className="flex gap-6">
-                <button onClick={() => setAdminTab('USERS')} className={`text-sm font-black uppercase tracking-widest ${adminTab === 'USERS' ? 'text-blue-600' : 'opacity-40'}`}>Users</button>
-                <button onClick={() => setAdminTab('MASTER_DATA')} className={`text-sm font-black uppercase tracking-widest ${adminTab === 'MASTER_DATA' ? 'text-blue-600' : 'opacity-40'}`}>Excel Data</button>
+                <button onClick={() => setAdminTab('USERS')} className={`text-sm font-black uppercase tracking-widest ${adminTab === 'USERS' ? 'text-blue-600' : 'opacity-40'}`}>User Management</button>
+                <button onClick={() => setAdminTab('MASTER_DATA')} className={`text-sm font-black uppercase tracking-widest ${adminTab === 'MASTER_DATA' ? 'text-blue-600' : 'opacity-40'}`}>Excel Database</button>
               </div>
-              <button onClick={() => setShowAdminPanel(false)} className="p-2 bg-slate-100 rounded-full text-slate-900"><X /></button>
+              <button onClick={() => setShowAdminPanel(false)} className="p-2 bg-white rounded-full text-slate-900 shadow-sm border"><X /></button>
             </div>
             
             <div className="p-10">
               {adminTab === 'USERS' ? (
                 <div className="space-y-6">
                    <div className="flex gap-4">
-                      <input type="text" placeholder="Username" className="flex-1 p-4 bg-slate-50 rounded-2xl outline-none" value={newUserName} onChange={e => setNewUserName(e.target.value)} />
-                      <input type="password" placeholder="Pass" className="flex-1 p-4 bg-slate-50 rounded-2xl outline-none" value={newUserPass} onChange={e => setNewUserPass(e.target.value)} />
+                      <input type="text" placeholder="Username" className="flex-1 p-4 bg-slate-50 rounded-2xl outline-none border" value={newUserName} onChange={e => setNewUserName(e.target.value)} />
+                      <input type="password" placeholder="Key" className="flex-1 p-4 bg-slate-50 rounded-2xl outline-none border" value={newUserPass} onChange={e => setNewUserPass(e.target.value)} />
                       <button onClick={() => {
                         if(!newUserName || !newUserPass) return;
                         setAccounts([...accounts, { id: Date.now().toString(), name: newUserName, password: newUserPass, role: 'user' }]);
                         setNewUserName(''); setNewUserPass('');
-                      }} className="px-8 bg-blue-600 text-white rounded-2xl font-black uppercase text-xs">Add User</button>
+                      }} className="px-8 bg-blue-600 text-white rounded-2xl font-black uppercase text-xs">Add New</button>
                    </div>
-                   <div className="max-h-60 overflow-y-auto space-y-2">
+                   <div className="max-h-60 overflow-y-auto space-y-2 pr-2">
                       {accounts.map(acc => (
-                        <div key={acc.id} className="flex justify-between p-4 bg-slate-50 rounded-xl">
-                          <span className="font-bold">{acc.name} ({acc.role})</span>
-                          {acc.name !== 'admin' && <button onClick={() => setAccounts(accounts.filter(a => a.id !== acc.id))} className="text-red-500"><Trash2 className="w-4 h-4"/></button>}
+                        <div key={acc.id} className="flex justify-between items-center p-4 bg-slate-50 rounded-xl border border-slate-100">
+                          <span className="font-bold text-sm">{acc.name} <span className="text-[10px] bg-slate-200 px-2 py-0.5 rounded-full ml-2">{acc.role}</span></span>
+                          {acc.name !== 'admin' && <button onClick={() => setAccounts(accounts.filter(a => a.id !== acc.id))} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 className="w-4 h-4"/></button>}
                         </div>
                       ))}
                    </div>
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-10">
-                  <div className="text-center p-10 border-2 border-dashed border-slate-200 rounded-3xl w-full">
-                    <FileSpreadsheet className="w-12 h-12 mx-auto mb-4 text-blue-600" />
-                    <p className="text-sm font-bold mb-6">Upload your 14-Column Master Excel File</p>
-                    <button onClick={() => excelFileInputRef.current?.click()} className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs">Select Excel File</button>
+                  <div className="text-center p-12 border-2 border-dashed border-slate-200 rounded-[2rem] w-full bg-slate-50">
+                    <FileSpreadsheet className="w-16 h-16 mx-auto mb-6 text-blue-600 opacity-40" />
+                    <p className="text-sm font-bold mb-8">Import your master fabrication data (14 columns)</p>
+                    <button onClick={() => excelFileInputRef.current?.click()} className="px-12 py-5 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-blue-100 active:scale-95 transition-all">Select Excel File</button>
                     <input type="file" ref={excelFileInputRef} className="hidden" accept=".xlsx,.xls" onChange={handleExcelFileUpload} />
                   </div>
-                  <div className="w-full flex justify-between items-center text-xs font-black uppercase opacity-40">
-                    <span>Loaded Rows: {masterData.length}</span>
-                    <button onClick={() => setMasterData([])} className="text-red-500 underline">Clear Database</button>
+                  <div className="w-full flex justify-between items-center text-[10px] font-black uppercase opacity-40 border-t pt-6">
+                    <span>Synchronized Rows: {masterData.length}</span>
+                    <button onClick={() => {if(window.confirm("Purge database?")) setMasterData([])}} className="text-red-500 hover:underline">Reset Inventory Data</button>
                   </div>
                 </div>
               )}
