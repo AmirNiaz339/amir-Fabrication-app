@@ -1,13 +1,15 @@
 
 import React, { useState, useRef } from 'react';
-import { Camera, Upload, Check, X, Loader2, Plus } from 'lucide-react';
+import { Camera, Upload, Check, X, Loader2, Plus, ArrowRight } from 'lucide-react';
+import { ThemeType } from '../types';
 
 interface CreatorCardProps {
   onSave: (code: string, userName: string, imageUrl: string) => void;
   currentUser: string;
+  theme: ThemeType;
 }
 
-const CreatorCard: React.FC<CreatorCardProps> = ({ onSave, currentUser }) => {
+const CreatorCard: React.FC<CreatorCardProps> = ({ onSave, currentUser, theme }) => {
   const [step, setStep] = useState<'IDLE' | 'CAPTURING' | 'STAGING'>('IDLE');
   const [preview, setPreview] = useState<string | null>(null);
   const [barcode, setBarcode] = useState('');
@@ -35,14 +37,6 @@ const CreatorCard: React.FC<CreatorCardProps> = ({ onSave, currentUser }) => {
     }
   };
 
-  const stopCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
-    setIsReady(false);
-  };
-
   const capture = () => {
     if (videoRef.current && canvasRef.current) {
       const canvas = canvasRef.current;
@@ -54,31 +48,15 @@ const CreatorCard: React.FC<CreatorCardProps> = ({ onSave, currentUser }) => {
       const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
       setPreview(dataUrl);
       setStep('STAGING');
-      stopCamera();
-    }
-  };
-
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (re) => {
-        setPreview(re.target?.result as string);
-        setStep('STAGING');
-      };
-      reader.readAsDataURL(file);
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        setStream(null);
+      }
     }
   };
 
   const handleSave = () => {
-    if (!barcode.trim()) {
-      alert("Please enter the Barcode number.");
-      return;
-    }
-    if (!currentUser.trim()) {
-      alert("CRITICAL: Set your 'User Name' in the top header first.");
-      return;
-    }
+    if (!barcode.trim()) return alert("Enter Barcode");
     if (preview) {
       onSave(barcode, currentUser, preview);
       reset();
@@ -86,52 +64,52 @@ const CreatorCard: React.FC<CreatorCardProps> = ({ onSave, currentUser }) => {
   };
 
   const reset = () => {
-    stopCamera();
+    if (stream) stream.getTracks().forEach(t => t.stop());
     setStep('IDLE');
     setPreview(null);
     setBarcode('');
   };
 
+  const btnClass = theme === 'cyber' ? 'bg-amber-500 text-black' : 'bg-indigo-600 text-white';
+  const cardBg = theme === 'dark' || theme === 'cyber' ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200';
+
   return (
-    <div className="bg-white border-2 border-dashed border-indigo-200 rounded-3xl overflow-hidden flex flex-col h-[480px] group transition-all hover:border-indigo-400 hover:shadow-xl hover:shadow-indigo-50">
+    <div className={`border-2 border-dashed rounded-[2.5rem] overflow-hidden flex flex-col h-[520px] transition-all group ${theme === 'cyber' ? 'border-amber-500/30' : 'border-indigo-100'}`}>
       {step === 'IDLE' && (
-        <div className="flex-1 flex flex-col items-center justify-center p-8 gap-6">
-          <div className="bg-indigo-50 p-6 rounded-full text-indigo-600 group-hover:scale-110 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">
-            <Plus className="w-10 h-10" />
+        <div className="flex-1 flex flex-col items-center justify-center p-10 gap-8">
+          <div className={`p-8 rounded-full transition-all duration-500 group-hover:scale-110 ${theme === 'cyber' ? 'bg-amber-500/10 text-amber-500' : 'bg-indigo-50 text-indigo-600'}`}>
+            <Plus className="w-12 h-12" />
           </div>
           <div className="text-center">
-            <h3 className="text-lg font-black text-slate-900 tracking-tight">Direct Capture</h3>
-            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Manual Single Entry</p>
+            <h3 className="text-xl font-black tracking-tight">Direct Entry</h3>
+            <p className="text-xs font-bold uppercase tracking-widest opacity-40 mt-1">Single Asset Acquisition</p>
           </div>
-          <div className="grid grid-cols-1 w-full gap-3">
-            <button 
-              onClick={startCamera}
-              className="flex items-center justify-center gap-3 py-4 bg-indigo-600 text-white rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all active:scale-95"
-            >
-              <Camera className="w-5 h-5" /> Take Photo
+          <div className="grid grid-cols-1 w-full gap-4">
+            <button onClick={startCamera} className={`flex items-center justify-center gap-3 py-5 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all ${btnClass}`}>
+              <Camera className="w-5 h-5" /> Take Snapshot
             </button>
-            <button 
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center justify-center gap-3 py-4 bg-white border-2 border-slate-100 text-slate-600 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-95"
-            >
-              <Upload className="w-5 h-5" /> From File
+            <button onClick={() => fileInputRef.current?.click()} className={`flex items-center justify-center gap-3 py-5 rounded-2xl text-xs font-black uppercase tracking-widest border border-current/10 active:scale-95 transition-all ${theme === 'cyber' ? 'bg-amber-500/5' : 'bg-slate-50'}`}>
+              <Upload className="w-5 h-5" /> From Drive
             </button>
-            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleUpload} />
+            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                const reader = new FileReader();
+                reader.onload = (re) => { setPreview(re.target?.result as string); setStep('STAGING'); };
+                reader.readAsDataURL(file);
+              }
+            }} />
           </div>
         </div>
       )}
 
       {step === 'CAPTURING' && (
-        <div className="flex-1 relative bg-black flex items-center justify-center overflow-hidden">
+        <div className="flex-1 relative bg-black">
           <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
           <canvas ref={canvasRef} className="hidden" />
-          <div className="absolute inset-0 flex flex-col justify-between p-6">
-            <button onClick={reset} className="self-end p-3 bg-black/50 text-white rounded-full backdrop-blur-md hover:bg-black/70 transition-all"><X className="w-6 h-6"/></button>
-            <button 
-              onClick={capture} 
-              disabled={!isReady}
-              className="self-center mb-8 w-20 h-20 border-8 border-white rounded-full flex items-center justify-center bg-red-600 shadow-2xl active:scale-90 transition-transform ring-4 ring-black/20"
-            >
+          <div className="absolute inset-0 flex flex-col justify-between p-8">
+            <button onClick={reset} className="self-end p-3 bg-black/50 text-white rounded-full"><X className="w-6 h-6"/></button>
+            <button onClick={capture} disabled={!isReady} className="self-center mb-8 w-20 h-20 border-8 border-white rounded-full bg-red-600 shadow-2xl active:scale-90 transition-all flex items-center justify-center">
               {!isReady && <Loader2 className="w-8 h-8 animate-spin text-white" />}
             </button>
           </div>
@@ -140,39 +118,25 @@ const CreatorCard: React.FC<CreatorCardProps> = ({ onSave, currentUser }) => {
 
       {step === 'STAGING' && (
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Constrained Image height so button stays visible */}
-          <div className="h-[220px] relative overflow-hidden bg-slate-100 border-b border-slate-100">
+          <div className="h-64 relative flex-shrink-0">
             <img src={preview!} className="w-full h-full object-cover" />
-            <button onClick={reset} className="absolute top-3 right-3 p-2 bg-black/50 text-white rounded-full backdrop-blur-md hover:bg-black/70 transition-all"><X className="w-4 h-4"/></button>
-            <div className="absolute bottom-2 left-3">
-              <span className="px-2 py-0.5 bg-indigo-600 text-white text-[8px] font-black uppercase rounded-full tracking-widest">Image Staged</span>
-            </div>
+            <button onClick={reset} className="absolute top-4 right-4 p-2 bg-black/60 text-white rounded-full"><X className="w-4 h-4"/></button>
           </div>
-          <div className="p-6 bg-white flex flex-col flex-1 justify-between">
-            <div>
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Barcode / Identification</label>
+          <div className={`p-8 flex flex-col flex-1 justify-between ${cardBg}`}>
+            <div className="space-y-4">
+              <label className="block text-[10px] font-black uppercase tracking-widest opacity-40">Identify Barcode</label>
               <input 
                 type="text" 
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-base font-mono font-bold focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all placeholder:font-normal"
-                placeholder="Type Barcode..."
+                className={`w-full px-5 py-4 rounded-2xl text-lg font-mono font-black outline-none border ${theme === 'cyber' ? 'bg-slate-800 border-amber-500/30' : 'bg-slate-50 border-slate-100 focus:border-indigo-600'}`}
+                placeholder="000-000-000"
                 value={barcode}
                 onChange={(e) => setBarcode(e.target.value)}
                 autoFocus
-                onKeyDown={(e) => e.key === 'Enter' && handleSave()}
               />
             </div>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase px-1">
-                <span>Saving As:</span>
-                <span className="text-indigo-600 truncate max-w-[120px]">{currentUser || 'NO USER SET'}</span>
-              </div>
-              <button 
-                onClick={handleSave}
-                className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 active:scale-95"
-              >
-                <Check className="w-5 h-5" /> Save to Archive
-              </button>
-            </div>
+            <button onClick={handleSave} className={`w-full py-5 rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-3 shadow-2xl transition-all active:scale-95 ${btnClass}`}>
+              Confirm & Save <ArrowRight className="w-5 h-5" />
+            </button>
           </div>
         </div>
       )}
