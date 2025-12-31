@@ -1,4 +1,21 @@
 
+export interface ExcelRow {
+  barcode: string;
+  productId: string;
+  productName: string;
+  sizeId: string;
+  colorId: string;
+  vendorName: string;
+  purchasePrice: string;
+  uom: string;
+  hir3: string;
+  hir5: string;
+  cvGroup: string;
+  lastPurchaseYear: string;
+  closingStock: string;
+  qtyReserve: string;
+}
+
 export interface ArchiveImage {
   id: string;
   url: string; 
@@ -11,6 +28,7 @@ export interface ArchiveEntry {
   userName: string;
   images: ArchiveImage[];
   timestamp: number;
+  lookupData?: ExcelRow;
   description?: string;
 }
 
